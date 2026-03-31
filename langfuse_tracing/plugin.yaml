@@ -1,0 +1,9 @@
+name: langfuse_tracing
+version: "0.1.0"
+description: Optional Langfuse tracing for Hermes conversations, LLM calls, and tool usage.
+author: Local feature skill
+provides_hooks:
+  - pre_llm_call
+  - post_llm_call
+  - pre_tool_call
+  - post_tool_call
