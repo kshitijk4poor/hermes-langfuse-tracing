@@ -23,20 +23,52 @@ Why:
 
 This repo is the runtime plugin repo.
 
-The Hermes side should expose a skill such as `langfuse-tracing` that:
-1. installs the `langfuse` Python package if needed
-2. fetches this repo
-3. copies `langfuse_tracing/__init__.py` and `langfuse_tracing/plugin.yaml` into:
-   - `$HERMES_HOME/plugins/langfuse_tracing/`
-4. writes Langfuse env vars into `$HERMES_HOME/.env`
-5. verifies `hermes plugins list`
+The Hermes side is expected to expose Langfuse setup through the normal Hermes setup/install surface rather than making users manually copy plugin files.
 
-So the user experience is:
-- install a Hermes skill
-- the skill changes the local Hermes install/profile
+Concretely, the Hermes flow should be:
+1. the user goes through Hermes setup or installs the official `langfuse-tracing` optional skill
+2. Hermes asks for or detects the Langfuse settings it needs
+3. Hermes installs the `langfuse` Python package if needed
+4. Hermes fetches this repo
+5. Hermes copies `langfuse_tracing/__init__.py` and `langfuse_tracing/plugin.yaml` into:
+   - `$HERMES_HOME/plugins/langfuse_tracing/`
+6. Hermes writes Langfuse env vars into `$HERMES_HOME/.env`
+7. Hermes verifies `hermes plugins list`
+8. on the next Hermes start, the plugin is discovered and becomes active
+
+So the user experience should feel like:
+- use Hermes setup / Hermes skill install
+- Hermes changes the local install/profile for you
 - Hermes loads this repo's plugin code at startup
 
-That gives a NanoClaw-like packaging model without forcing Hermes to put tracing hooks directly in core.
+That is the key NanoClaw-like idea here: the integration is presented to the user through the assistant's setup/skill system, while the runtime implementation still lives in a separate repo.
+
+## How this relates to `hermes setup`
+
+This repo is not the setup wizard itself.
+
+Instead:
+- Hermes owns the setup UX
+- this repo owns the runtime plugin code
+- Hermes setup should point at this repo as the source of truth for the plugin files
+
+Think of the boundary like this:
+
+### Hermes setup is responsible for
+- asking whether the user wants Langfuse tracing
+- collecting or validating Langfuse credentials/base URL
+- installing the Python dependency if needed
+- fetching/copying the plugin into the active profile
+- writing env vars into the correct `$HERMES_HOME/.env`
+- telling the user to restart Hermes if needed
+
+### This repo is responsible for
+- the actual Hermes plugin manifest
+- the hook handlers and trace/span logic
+- payload normalization and fail-open behavior
+- plugin-side compatibility with Hermes hook evolution
+
+That split is important because it keeps Hermes setup clean and user-facing, while keeping the tracing runtime independently versioned.
 
 ## Architecture
 
